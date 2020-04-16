@@ -42,33 +42,6 @@ class UserController extends Controller
             )->toDateTimeString();
             if(!empty(request('firebase_token'))) $data = Notification::updateOrCreate(['user_id'=>$user->id],['token'=>request('firebase_token')]);//set firebase token            
             return response()->json(['success' => $success], $this->successStatus);
-        }
-        elseif(Auth::attempt(['username' => request('username'), 'password' => request('password')])) {
-            $user = Auth::user();
-            $tokenResult = $user->createToken('Kaliko Android App');
-            $token = $tokenResult->token;
-            $token->expires_at = Carbon::now()->addWeeks(1);
-            $token->save();
-            $success['token'] = $tokenResult->accessToken;
-            $success['token_type'] = 'Bearer';
-            $success['expires_at'] = Carbon::parse(
-                $tokenResult->token->expires_at
-            )->toDateTimeString();            
-            if(!empty(request('firebase_token'))) $data = Notification::updateOrCreate(['user_id'=>$user->id],['token'=>request('firebase_token')]);//set firebase token
-            return response()->json(['success' => $success], $this->successStatus);
-        }elseif(Auth::attempt(['phone' => request('phone'), 'password' => request('password')])) {
-            $user = Auth::user();
-            $tokenResult = $user->createToken('Kaliko Android App');
-            $token = $tokenResult->token;
-            $token->expires_at = Carbon::now()->addWeeks(1);
-            $token->save();
-            $success['token'] = $tokenResult->accessToken;
-            $success['token_type'] = 'Bearer';
-            $success['expires_at'] = Carbon::parse(
-                $tokenResult->token->expires_at
-            )->toDateTimeString();
-            if(!empty(request('firebase_token'))) $data = Notification::updateOrCreate(['user_id'=>$user->id],['token'=>request('firebase_token')]);//set firebase token            
-            return response()->json(['success' => $success], $this->successStatus);
         }else{
             return response()->json(['error'=>'Unauthorised'], 401);
         }
@@ -139,7 +112,6 @@ class UserController extends Controller
         $socialuser = SocialAccount::where('provider',$request->provider)->where('provider_user_id', $request->provider_user_id)->first();
         if(!$socialuser){
             $user = User::create([
-                'username'     => $request->provider_user_id.'@'.$request->provider,
                 'email'    => $request->provider_user_id.'@'.$request->provider,
                 'password' => Hash::make($request->provider)
             ]);
@@ -264,14 +236,11 @@ class UserController extends Controller
 
     public function edit(Request $request) {
         $requestData = $request->all();      
-        // username, email, and phone cannot be edited
         unset($requestData["user_id"]);
         $user = User::with('notification_allows')->find(Auth::id());
 
         $validator = Validator::make($request->all(), [
-            'username' => Rule::unique('users')->ignore(Auth::user()->id),
             'email' => 'email|'.Rule::unique('users')->ignore(Auth::user()->id),
-            'phone' => Rule::unique('users')->ignore(Auth::user()->id),
         ]);
         if ($validator->fails()) {
             $messages = $validator->errors()->messages();
@@ -320,9 +289,7 @@ class UserController extends Controller
         $requestData = $request->all();     
         
         $validator = Validator::make($request->all(), [
-            'username' => 'unique:users',
             'email' => 'email|unique:users',
-            'phone' => 'unique:users',
         ]);
         if ($validator->fails()) {
             $messages = $validator->errors()->messages();

@@ -17,8 +17,8 @@ use Illuminate\Support\Facades\Route;
 /*
 no need authorization token
 */
-Route::get('login', 'Api\UserController@login');
 Route::post('login', 'Api\UserController@login');
+Route::get('login', [ 'as' => 'login', 'uses' => 'Api\UserController@login']);
 Route::post('social-login', 'Api\UserController@socialLogin');
 Route::post('register', 'Api\UserController@register');
 Route::post('forget-password', 'Api\UserController@forgetPassword');
@@ -31,4 +31,7 @@ Route::group(['middleware' => 'auth:api'], function() {
     Route::post('logout', 'Api\UserController@logout');
     Route::post('user/edit', 'Api\UserController@edit');
     Route::post('user/edit-avatar', 'Api\UserController@editAvatar');
+});
+Route::middleware('auth:api')->get('/user', function (Request $request) {
+    return $request->user();
 });
