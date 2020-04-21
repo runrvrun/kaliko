@@ -41,9 +41,9 @@ class UserController extends Controller
                 $tokenResult->token->expires_at
             )->toDateTimeString();
             if(!empty(request('firebase_token'))) $data = Notification::updateOrCreate(['user_id'=>$user->id],['token'=>request('firebase_token')]);//set firebase token            
-            return response()->json(['success' => $success], $this->successStatus);
+            return response()->json(['data' => $success], $this->successStatus);
         }else{
-            return response()->json(['error'=>'Unauthorised'], 401);
+            return response()->json(['error'=>'Unauthorized'], 200);
         }
     }
 
@@ -53,8 +53,7 @@ class UserController extends Controller
             'name' => 'required',
             'email' => 'required|email|unique:users',
             'company' => 'required',
-            'password' => 'required',
-            'confirm_password' => 'required|same:password',
+            'password' => 'required'
         ]);
 
         if ($validator->fails()) {
@@ -65,7 +64,7 @@ class UserController extends Controller
                     $message .= $err;
                 }
             }
-            return response()->json(['message' => $message], 401);
+            return response()->json(['error' => $message], 200);
         }
 
         $input = $request->all();
@@ -137,11 +136,15 @@ class UserController extends Controller
         return response()->json(['success' => $success], $this->successStatus);
     }
 
-    public function details()
+    public function loggedin()
     {
         $user_id = Auth::user()->id;
         $user = User::with('notification_allows')->where('id',$user_id)->first();
-        return response()->json(['data' => $user], $this->successStatus);
+        if($user){
+            return response()->json(['data' => $user], $this->successStatus);
+        }else{
+            return response()->json(['error' => 'Unauthorized'], $this->successStatus);
+        }
     }
 
     public function refreshToken(Request $request){
@@ -198,7 +201,7 @@ class UserController extends Controller
             $return = [
                 'status' => 'User not found'
             ];
-            return response($return,400);
+            return response($return,200);
         }    
     }
         
@@ -230,7 +233,7 @@ class UserController extends Controller
             $return = [
                 'status' => 'Invalid OTP'
             ];
-            return response($return,400);
+            return response($return,200);
         }
     }
 
@@ -250,7 +253,7 @@ class UserController extends Controller
                     $message .= $err;
                 }
             }
-            return response()->json(['message' => $message], 401);
+            return response()->json(['message' => $message], 200);
         }
 
         unset($requestData["user_id"]);
@@ -285,37 +288,6 @@ class UserController extends Controller
         return response($return,$this->successStatus);
     }
     
-    public function edito(Request $request) {  
-        $requestData = $request->all();     
-        
-        $validator = Validator::make($request->all(), [
-            'email' => 'email|unique:users',
-        ]);
-        if ($validator->fails()) {
-            $messages = $validator->errors()->messages();
-            $message = '';
-            foreach($messages as $key=>$errs){
-                foreach($errs as $key=>$err){
-                    $message .= $err;
-                }
-            }
-            return response()->json(['message' => $message], 401);
-        }
-          
-        $user = User::with('notification_allows')->find($request->user_id); 
-        // $user = Auth::user();
-        unset($requestData["user_id"]);
-        if(isset($requestData["password"])){
-            $requestData["password"] =  Hash::make($requestData["password"]);
-        }
-        $user->update($requestData);        
-        $return = [
-            'status' => 'User updated',
-            'data' => $user
-        ];
-        return response($return,$this->successStatus);
-    }
-
     public function editAvatar(Request $request) { 
         $user = Auth::user();
         $requestData = $request->all();     
@@ -330,10 +302,9 @@ class UserController extends Controller
             // dd($avatar);
         }else{
             $return = [
-                'status' => 'failed',
                 'message' => 'no file uploaded'
             ];
-            return response($return,400);    
+            return response($return,200);    
         }
         $user->update($requestData);
         $return = [
@@ -346,8 +317,7 @@ class UserController extends Controller
     public function changePassword(Request $request){
         $validator = Validator::make($request->all(), [
             'old_password' => 'required',
-            'new_password' => 'min:4|required|confirmed|different:old_password',
-            'new_password_confirmation' => 'min:4|required_with:new_password'
+            'new_password' => 'min:4|required|different:old_password',
         ]);
         if ($validator->fails()) {
             $messages = $validator->errors()->messages();
@@ -357,12 +327,12 @@ class UserController extends Controller
                     $message .= $err;
                 }
             }
-            return response()->json(['message' => $message], 401);
+            return response()->json(['message' => $message], 200);
         }
 
         $user = Auth::user();
         if(!Hash::check($request->old_password, $user->password)) {
-            return response()->json(['message' => 'Incorrect password'], 400);
+            return response()->json(['message' => 'Incorrect password'], 200);
         }
 
         $requestData["password"] =  Hash::make($request->new_password);
@@ -397,8 +367,7 @@ class UserController extends Controller
     public function changePasswordOtp(Request $request){
         $validator = Validator::make($request->all(), [
             'otp' => 'required',
-            'new_password' => 'min:4|required|confirmed',
-            'new_password_confirmation' => 'min:4|required_with:new_password'
+            'new_password' => 'min:4|required',
         ]);
         if ($validator->fails()) {
             $messages = $validator->errors()->messages();
@@ -408,12 +377,12 @@ class UserController extends Controller
                     $message .= $err;
                 }
             }
-            return response()->json(['message' => $message], 401);
+            return response()->json(['message' => $message], 200);
         }
 
         $user = Auth::user();
         if($user->otp != $request->otp) {
-            return response()->json(['message' => 'Incorrect OTP'], 400);
+            return response()->json(['message' => 'Incorrect OTP'], 200);
         }
 
         $requestData["password"] =  Hash::make($request->new_password);

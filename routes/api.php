@@ -29,6 +29,7 @@ through API guard, must send authorization token
 Route::group(['middleware' => 'auth:api'], function() {
     Route::post('refresh-token', 'Api\UserController@refreshToken');
     Route::post('logout', 'Api\UserController@logout');
+    Route::get('user/loggedin', 'Api\UserController@loggedin');
     Route::post('user/edit', 'Api\UserController@edit');
     Route::post('user/edit-avatar', 'Api\UserController@editAvatar');
 });
